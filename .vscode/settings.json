@@ -1,17 +1,17 @@
 {
-  "files.exclude": {
-    "**/.git": true,
-    "**/.devcontainer": true
-  },
-  "python.terminal.activateEnvironment": true,
-  "python.defaultInterpreterPath": "/usr/local/bin/python",
-  // Disable features that could provide too much help
-  "python.analysis.completeFunctionParens": false,
-  "python.analysis.autoSearchPaths": false,
-  // Keep error highlighting visible
-  "editor.renderWhitespace": "selection",
-  "editor.rulers": [
-    80
-  ],
-  "files.trimTrailingWhitespace": true
+    "files.exclude": {
+        "**/.git": true,
+        "**/.devcontainer": true
+    },
+    "python.terminal.activateEnvironment": true,
+    "python.defaultInterpreterPath": "/usr/local/bin/python",
+    // Disable features that could provide too much help
+    "python.analysis.completeFunctionParens": false,
+    "python.analysis.autoSearchPaths": false,
+    // Keep error highlighting visible
+    "editor.renderWhitespace": "selection",
+    "editor.rulers": [
+        80
+    ],
+    "files.trimTrailingWhitespace": true
 }
