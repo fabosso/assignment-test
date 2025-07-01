@@ -68,78 +68,51 @@ RUN echo '{ \
     "extensions.autoCheckUpdates": false \
 }' > /home/vscode/.vscode-server/data/Machine/settings.json
 
-# Create a script to monitor and remove unwanted extensions
-RUN cat > /home/vscode/monitor-extensions.sh << 'EOF'
-#!/bin/bash
-ALLOWED_EXTENSIONS="ms-python.python ms-python.vscode-pylance ms-python.flake8"
-BLOCKED_KEYWORDS="copilot tabnine codeium intellicode kite tabby"
-
-while true; do
-    # Check VS Code Server extensions directory
-    if [ -d "/home/vscode/.vscode-server/extensions" ]; then
-        for ext_dir in /home/vscode/.vscode-server/extensions/*; do
-            if [ -d "$ext_dir" ]; then
-                ext_name=$(basename "$ext_dir" | tr '[:upper:]' '[:lower:]')
-
-                # Check if extension is in blocked list
-                for blocked in $BLOCKED_KEYWORDS; do
-                    if [[ "$ext_name" == *"$blocked"* ]]; then
-                        echo "[$(date)] Removing blocked extension: $ext_name"
-                        rm -rf "$ext_dir"
-                    fi
-                done
-
-                # Check if extension is not in allowed list
-                allowed=false
-                for allowed_ext in $ALLOWED_EXTENSIONS; do
-                    if [[ "$ext_name" == *"$allowed_ext"* ]]; then
-                        allowed=true
-                        break
-                    fi
-                done
-
-                if [ "$allowed" = false ] && [[ ! "$ext_name" == ms-vscode* ]]; then
-                    echo "[$(date)] Removing unauthorized extension: $ext_name"
-                    rm -rf "$ext_dir"
-                fi
-            fi
-        done
-    fi
-
-    # Kill any Copilot processes
-    pkill -f "copilot" 2>/dev/null || true
-    pkill -f "tabnine" 2>/dev/null || true
-    pkill -f "codeium" 2>/dev/null || true
-
-    sleep 10
-done
-EOF
+# Alternative: Create script with echo commands
+RUN echo '#!/bin/bash' > /home/vscode/monitor-extensions.sh && \
+    echo 'ALLOWED_EXTENSIONS="ms-python.python ms-python.vscode-pylance ms-python.flake8"' >> /home/vscode/monitor-extensions.sh && \
+    echo 'BLOCKED_KEYWORDS="copilot tabnine codeium intellicode kite tabby"' >> /home/vscode/monitor-extensions.sh && \
+    echo '' >> /home/vscode/monitor-extensions.sh && \
+    echo 'while true; do' >> /home/vscode/monitor-extensions.sh && \
+    echo '    if [ -d "/home/vscode/.vscode-server/extensions" ]; then' >> /home/vscode/monitor-extensions.sh && \
+    echo '        for ext_dir in /home/vscode/.vscode-server/extensions/*; do' >> /home/vscode/monitor-extensions.sh && \
+    echo '            if [ -d "$ext_dir" ]; then' >> /home/vscode/monitor-extensions.sh && \
+    echo '                ext_name=$(basename "$ext_dir" | tr "[:upper:]" "[:lower:]")' >> /home/vscode/monitor-extensions.sh && \
+    echo '                for blocked in $BLOCKED_KEYWORDS; do' >> /home/vscode/monitor-extensions.sh && \
+    echo '                    if [[ "$ext_name" == *"$blocked"* ]]; then' >> /home/vscode/monitor-extensions.sh && \
+    echo '                        echo "[$(date)] Removing blocked extension: $ext_name"' >> /home/vscode/monitor-extensions.sh && \
+    echo '                        rm -rf "$ext_dir"' >> /home/vscode/monitor-extensions.sh && \
+    echo '                    fi' >> /home/vscode/monitor-extensions.sh && \
+    echo '                done' >> /home/vscode/monitor-extensions.sh && \
+    echo '            fi' >> /home/vscode/monitor-extensions.sh && \
+    echo '        done' >> /home/vscode/monitor-extensions.sh && \
+    echo '    fi' >> /home/vscode/monitor-extensions.sh && \
+    echo '    pkill -f "copilot" 2>/dev/null || true' >> /home/vscode/monitor-extensions.sh && \
+    echo '    sleep 10' >> /home/vscode/monitor-extensions.sh && \
+    echo 'done' >> /home/vscode/monitor-extensions.sh
 
 RUN chmod +x /home/vscode/monitor-extensions.sh
 
 # Create startup script
-RUN cat > /home/vscode/startup.sh << 'EOF'
-#!/bin/bash
-
-# Start the monitor in background
-/home/vscode/monitor-extensions.sh &
-
-# Show warning message
-echo "================================================"
-echo "🚫 AI CODING ASSISTANTS ARE DISABLED"
-echo "================================================"
-echo "This is an educational environment."
-echo "GitHub Copilot and similar tools are blocked."
-echo "You must write all code yourself!"
-echo "================================================"
-
-# Create a canary file to detect if extensions are being installed
-touch /home/vscode/.extension-check
-
-# Set restrictive permissions on extension directories after VS Code starts
-(sleep 30 && chmod 555 /home/vscode/.vscode-server/extensions 2>/dev/null) &
-
-EOF
+RUN echo '#!/bin/bash' > /home/vscode/startup.sh && \
+    echo '' >> /home/vscode/startup.sh && \
+    echo '# Start the monitor in background' >> /home/vscode/startup.sh && \
+    echo '/home/vscode/monitor-extensions.sh &' >> /home/vscode/startup.sh && \
+    echo '' >> /home/vscode/startup.sh && \
+    echo '# Show warning message' >> /home/vscode/startup.sh && \
+    echo 'echo "================================================"' >> /home/vscode/startup.sh && \
+    echo 'echo "🚫 AI CODING ASSISTANTS ARE DISABLED"' >> /home/vscode/startup.sh && \
+    echo 'echo "================================================"' >> /home/vscode/startup.sh && \
+    echo 'echo "This is an educational environment."' >> /home/vscode/startup.sh && \
+    echo 'echo "GitHub Copilot and similar tools are blocked."' >> /home/vscode/startup.sh && \
+    echo 'echo "You must write all code yourself!"' >> /home/vscode/startup.sh && \
+    echo 'echo "================================================"' >> /home/vscode/startup.sh && \
+    echo '' >> /home/vscode/startup.sh && \
+    echo '# Create a canary file to detect if extensions are being installed' >> /home/vscode/startup.sh && \
+    echo 'touch /home/vscode/.extension-check' >> /home/vscode/startup.sh && \
+    echo '' >> /home/vscode/startup.sh && \
+    echo '# Set restrictive permissions on extension directories after VS Code starts' >> /home/vscode/startup.sh && \
+    echo '(sleep 30 && chmod 555 /home/vscode/.vscode-server/extensions 2>/dev/null) &' >> /home/vscode/startup.sh
 
 RUN chmod +x /home/vscode/startup.sh
 
@@ -151,24 +124,22 @@ ENV GITHUB_COPILOT_ENABLED=false \
 
 # Create a fake 'code' command that blocks extension installation
 RUN mkdir -p /home/vscode/.local/bin && \
-    cat > /home/vscode/.local/bin/code << 'EOF'
-#!/bin/bash
-if [[ "$*" == *"--install-extension"* ]] && [[ "$*" == *"copilot"* ]]; then
-    echo "❌ GitHub Copilot is blocked in this educational environment"
-    exit 1
-elif [[ "$*" == *"--install-extension"* ]] && [[ "$*" == *"tabnine"* ]]; then
-    echo "❌ AI assistants are blocked in this educational environment"
-    exit 1
-elif [[ "$*" == *"--install-extension"* ]] && [[ "$*" == *"codeium"* ]]; then
-    echo "❌ AI assistants are blocked in this educational environment"
-    exit 1
-elif [[ "$*" == *"--install-extension"* ]]; then
-    echo "⚠️  Extension installation is restricted. Contact your instructor if you need additional tools."
-    exit 1
-else
-    /usr/bin/code "$@" 2>/dev/null || true
-fi
-EOF
+    echo '#!/bin/bash' > /home/vscode/.local/bin/code && \
+    echo 'if [[ "$*" == *"--install-extension"* ]] && [[ "$*" == *"copilot"* ]]; then' >> /home/vscode/.local/bin/code && \
+    echo '    echo "❌ GitHub Copilot is blocked in this educational environment"' >> /home/vscode/.local/bin/code && \
+    echo '    exit 1' >> /home/vscode/.local/bin/code && \
+    echo 'elif [[ "$*" == *"--install-extension"* ]] && [[ "$*" == *"tabnine"* ]]; then' >> /home/vscode/.local/bin/code && \
+    echo '    echo "❌ AI assistants are blocked in this educational environment"' >> /home/vscode/.local/bin/code && \
+    echo '    exit 1' >> /home/vscode/.local/bin/code && \
+    echo 'elif [[ "$*" == *"--install-extension"* ]] && [[ "$*" == *"codeium"* ]]; then' >> /home/vscode/.local/bin/code && \
+    echo '    echo "❌ AI assistants are blocked in this educational environment"' >> /home/vscode/.local/bin/code && \
+    echo '    exit 1' >> /home/vscode/.local/bin/code && \
+    echo 'elif [[ "$*" == *"--install-extension"* ]]; then' >> /home/vscode/.local/bin/code && \
+    echo '    echo "⚠️  Extension installation is restricted. Contact your instructor if you need additional tools."' >> /home/vscode/.local/bin/code && \
+    echo '    exit 1' >> /home/vscode/.local/bin/code && \
+    echo 'else' >> /home/vscode/.local/bin/code && \
+    echo '    /usr/bin/code "$@" 2>/dev/null || true' >> /home/vscode/.local/bin/code && \
+    echo 'fi' >> /home/vscode/.local/bin/code
 
 RUN chmod +x /home/vscode/.local/bin/code
 
