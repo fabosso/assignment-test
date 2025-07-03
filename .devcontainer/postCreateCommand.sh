@@ -3,7 +3,7 @@
 echo "🔒 Setting up restricted environment..."
 
 # Start the monitoring script
-/home/vscode/scripts/monitor-extensions.sh &
+/home/vscode/monitor-extensions.sh &
 disown
 
 # Install Python packages
