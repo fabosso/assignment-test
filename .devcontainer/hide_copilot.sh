@@ -1,89 +1,89 @@
 #!/bin/bash
 
-echo "🔒 Configuring UI to hide Copilot..."
-
-# Install flake8 first
-pip install flake8
+echo "🔒 Hiding Copilot icon and status bar..."
 
 # Wait for VS Code to be ready
 sleep 3
 
-# Method 1: Try to use VS Code commands to hide Copilot
-echo "  Attempting to hide Copilot via VS Code commands..."
-
-# These commands simulate clicking "Hide Copilot" in the UI
-code --command workbench.action.auxiliary.resetDefaultLocation 2>/dev/null || true
-code --command workbench.action.toggleAuxiliaryBar 2>/dev/null || true
-code --command workbench.action.activityBarLocation.hide 2>/dev/null || true
-
-# Method 2: Create comprehensive settings to disable Copilot UI
-echo "  Updating VS Code settings..."
+# Create VS Code settings to hide UI elements
+echo "  Creating VS Code settings..."
 mkdir -p .vscode
 cat > .vscode/settings.json << 'EOF'
 {
-  // Disable ALL Copilot features
-  "github.copilot.enable": false,
-  "github.copilot.advanced": {
-    "disabled": true
-  },
-  "github.copilot.chat.enabled": false,
-  "github.copilot.voice.enabled": false,
-  "github.copilot.editor.enableAutoCompletions": false,
-
-  // Hide Copilot from UI
-  "workbench.panel.chat.hidden": true,
-  "chat.commandCenter.enabled": false,
-
-  // Minimal Python settings
-  "python.defaultInterpreterPath": "/usr/local/bin/python",
-  "python.linting.enabled": true,
-  "python.linting.pylintEnabled": false,
-  "python.linting.flake8Enabled": true,
-
-  // Disable all telemetry and extras
-  "telemetry.telemetryLevel": "off",
-  "extensions.autoUpdate": false,
-  "extensions.autoCheckUpdates": false,
-  "extensions.ignoreRecommendations": true,
-
-  // Clean editor
-  "editor.minimap.enabled": false,
-  "editor.suggestOnTriggerCharacters": false,
-  "editor.quickSuggestions": {
-    "other": false,
-    "comments": false,
-    "strings": false
-  },
-
-  // Hide auxiliary bar where Copilot chat appears
+  // Hide auxiliary bar where Copilot icon appears
   "workbench.auxiliaryBar.enabled": false,
-  "workbench.auxiliaryBar.visible": false
+  "workbench.auxiliaryBar.visible": false,
+
+  // Hide the entire status bar
+  "workbench.statusBar.visible": false,
+
+  // Hide Extensions icon from activity bar
+  "workbench.activityBar.visible": true,
+  "workbench.view.extensions.visible": false
 }
 EOF
 
-# Method 3: Create a keybinding that disables Copilot shortcuts
-echo "  Creating keybinding overrides..."
-mkdir -p .vscode
+echo "✅ Configuration complete!"
+
+# Create keybindings to disable shortcuts
+echo "  Disabling keybindings..."
 cat > .vscode/keybindings.json << 'EOF'
 [
   {
-    "key": "ctrl+enter",
-    "command": "-github.copilot.generate",
-    "when": "editorTextFocus && github.copilot.activated"
+    "key": "ctrl+shift+x",
+    "command": "-workbench.view.extensions"
   },
   {
-    "key": "ctrl+shift+i",
-    "command": "-workbench.action.chat.open",
-    "when": "github.copilot.activated"
+    "key": "cmd+shift+x",
+    "command": "-workbench.view.extensions"
+  },
+  {
+    "key": "ctrl+i",
+    "command": "-github.copilot.chat.open"
+  },
+  {
+    "key": "cmd+i",
+    "command": "-github.copilot.chat.open"
+  },
+  {
+    "key": "ctrl+enter",
+    "command": "-github.copilot.generate"
+  },
+  {
+    "key": "cmd+enter",
+    "command": "-github.copilot.generate"
+  },
+  {
+    "key": "alt+\\",
+    "command": "-github.copilot.toggleCopilot"
+  },
+  {
+    "key": "alt+]",
+    "command": "-github.copilot.nextSuggestion"
+  },
+  {
+    "key": "alt+[",
+    "command": "-github.copilot.previousSuggestion"
+  },
+  {
+    "key": "tab",
+    "command": "-github.copilot.acceptSuggestion",
+    "when": "github.copilot.inProgress"
   }
 ]
 EOF
 
-echo "✅ Configuration complete!"
 echo ""
-echo "📌 If you still see Copilot icons:"
-echo "   1. Right-click on the Copilot icon in the sidebar"
-echo "   2. Select 'Hide Copilot' or 'Hide from Activity Bar'"
-echo "   3. Or reload the window: Ctrl/Cmd + R"
+echo "📌 UI Changes:"
+echo "   - Copilot icon panel: Hidden"
+echo "   - Status bar: Hidden"
+echo "   - Extensions button: Hidden"
 echo ""
-echo "🚫 Copilot has been disabled in all settings"
+echo "🔒 Disabled Keybindings:"
+echo "   - Ctrl/Cmd+Shift+X: Extensions panel"
+echo "   - Ctrl/Cmd+I: Copilot chat"
+echo "   - Ctrl/Cmd+Enter: Copilot generate"
+echo "   - Tab: Accept Copilot suggestion"
+echo "   - Alt+\\: Toggle Copilot"
+echo "   - Alt+[/]: Previous/Next suggestion"
+echo ""

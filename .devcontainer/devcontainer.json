@@ -30,7 +30,15 @@
         "workbench.auxiliaryBar.enabled": false,
         "workbench.auxiliaryBar.visible": false,
         "workbench.panel.chat.hidden": true,
-        "chat.commandCenter.enabled": false
+        "chat.commandCenter.enabled": false,
+
+        // Hide the entire status bar
+        "workbench.statusBar.visible": false,
+
+        // Hide Copilot from status bar
+        "github.copilot.showStatus": false,
+        "github.copilot.statusBar.visible": false,
+        "workbench.statusBar.item.github.copilot.hidden": true
       },
 
       // ONLY essential Python extension - no extras
