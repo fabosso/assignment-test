@@ -36,8 +36,16 @@ cat > .vscode/settings.json << 'EOF'
   // Hide UI bars
   "workbench.statusBar.visible": false,
   "workbench.activityBar.visible": false,
+  "workbench.activityBar.location": "hidden",
   "window.titleBarStyle": "custom",
   "workbench.layoutControl.enabled": false,
+
+  // Hide command center and navigation
+  "window.commandCenter": false,
+  "workbench.editor.showTabs": true,
+  "workbench.editor.tabActionLocation": "left",
+  "workbench.editor.tabActionCloseVisibility": false,
+  "window.menuBarVisibility": "hidden",
 
   // Hide Extensions to prevent re-enabling
   "workbench.view.extensions.visible": false,
@@ -75,17 +83,58 @@ cat > .vscode/settings.json << 'EOF'
   // Additional minimal UI settings
   "breadcrumbs.enabled": false,
   "editor.minimap.enabled": false,
-  "workbench.editor.showTabs": true,
-  "workbench.sideBar.location": "left"
+  "workbench.sideBar.location": "left",
+  "editor.scrollbar.horizontal": "hidden",
+  "editor.scrollbar.vertical": "auto"
 }
 EOF
 
+
+# Also create workspace keybindings as fallback
+echo "$KEYBINDINGS_CONTENT" > .vscode/keybindings.json
+echo "  ✓ Created workspace keybindings at: .vscode/keybindings.json"
+
 # Force uninstall Copilot if it exists
 echo "  Checking for Copilot extensions..."
-code --uninstall-extension GitHub.copilot --force 2>/dev/null || true
-code --uninstall-extension GitHub.copilot-nightly --force 2>/dev/null || true
-code --uninstall-extension GitHub.copilot-labs --force 2>/dev/null || true
-code --uninstall-extension GitHub.copilot-chat --force 2>/dev/null || true
+
+# List all extensions to see what's installed
+echo "  Current extensions:"
+code --list-extensions 2>/dev/null | while read ext; do
+    echo "    - $ext"
+done
+
+# Check specifically for Copilot extensions
+COPILOT_FOUND=$(code --list-extensions 2>/dev/null | grep -i copilot || true)
+if [ -n "$COPILOT_FOUND" ]; then
+    echo "  ⚠️  Found Copilot extensions installed:"
+    echo "$COPILOT_FOUND" | while read ext; do
+        echo "    - $ext"
+        echo "    Uninstalling $ext..."
+        code --uninstall-extension "$ext" --force 2>&1
+    done
+else
+    echo "  ✓ No Copilot extensions found"
+fi
+
+# Also try specific known Copilot extension IDs
+echo "  Attempting to uninstall known Copilot extensions..."
+code --uninstall-extension GitHub.copilot --force 2>/dev/null && echo "    Removed GitHub.copilot" || echo "    GitHub.copilot not installed"
+code --uninstall-extension GitHub.copilot-nightly --force 2>/dev/null && echo "    Removed GitHub.copilot-nightly" || echo "    GitHub.copilot-nightly not installed"
+code --uninstall-extension GitHub.copilot-labs --force 2>/dev/null && echo "    Removed GitHub.copilot-labs" || echo "    GitHub.copilot-labs not installed"
+code --uninstall-extension GitHub.copilot-chat --force 2>/dev/null && echo "    Removed GitHub.copilot-chat" || echo "    GitHub.copilot-chat not installed"
+
+# Verify removal
+echo "  Verifying removal..."
+REMAINING_COPILOT=$(code --list-extensions 2>/dev/null | grep -i copilot || true)
+if [ -n "$REMAINING_COPILOT" ]; then
+    echo "  ❌ WARNING: Some Copilot extensions may still be installed:"
+    echo "$REMAINING_COPILOT"
+else
+    echo "  ✓ All Copilot extensions successfully removed"
+fi
+
+# Backup settings for tampering detection
+cp .vscode/settings.json /tmp/vscode_settings_backup.json 2>/dev/null || true
 
 # Create monitoring script with proper paths
 echo "  Setting up Copilot monitoring daemon..."
@@ -114,7 +163,7 @@ echo "Monitor daemon started at $(date)"
 while true; do
     CHECK_COUNT=$((CHECK_COUNT + 1))
 
-    # Check if any Copilot extension gets installed
+    # Check if any Copilot extension gets installed in VS Code
     COPILOT_EXTS=$(code --list-extensions 2>/dev/null | grep -i copilot || true)
 
     if [ -n "$COPILOT_EXTS" ]; then
@@ -137,6 +186,22 @@ while true; do
         # Log periodic status updates
         if [ $((CHECK_COUNT % CHECKS_PER_STATUS)) -eq 0 ]; then
             echo "[$(date)] STATUS: All clear - No Copilot detected (Check #$CHECK_COUNT)" >> "$LOG_FILE"
+
+            # Every 5 minutes, do deeper checks
+            if [ $((CHECK_COUNT % 60)) -eq 0 ]; then
+                echo "[$(date)] Running deep scan..." >> "$LOG_FILE"
+                check_browser_extensions
+                check_network_connections
+            fi
+        fi
+    fi
+
+    # Check for VS Code configuration tampering
+    if [ -f ".vscode/settings.json" ]; then
+        if ! grep -q '"github.copilot.enable": false' .vscode/settings.json 2>/dev/null; then
+            echo "[$(date)] WARNING: VS Code settings may have been tampered with!" >> "$LOG_FILE"
+            # Restore our settings
+            cp /tmp/vscode_settings_backup.json .vscode/settings.json 2>/dev/null || true
         fi
     fi
 
@@ -187,10 +252,12 @@ echo ""
 echo "🔒 ONLINE TEST MODE ACTIVE:"
 echo "   ✓ Copilot completely disabled"
 echo "   ✓ All AI assistance blocked"
-echo "   ✓ Activity bar hidden (left sidebar)"
-echo "   ✓ Status bar hidden (bottom bar)"
-echo "   ✓ Title bar minimized"
-echo "   ✓ Extensions panel hidden"
+echo "   ✓ Activity bar hidden (position: hidden)"
+echo "   ✓ Status bar hidden"
+echo "   ✓ Command center hidden"
+echo "   ✓ Menu bar hidden"
+echo "   ✓ Navigation controls hidden"
+echo "   ✓ Extensions panel blocked"
 echo "   ✓ Command palette disabled (F1, Ctrl/Cmd+Shift+P)"
 echo "   ✓ IntelliSense and suggestions disabled"
 echo "   ✓ Inline hints and ghost text removed"
@@ -201,6 +268,12 @@ echo "📍 Monitor locations:"
 echo "   Log file: /tmp/copilot_violations.log"
 echo "   Monitor log: /tmp/copilot_monitor.log"
 echo "   Stop script: /tmp/stop_monitor.sh"
+echo ""
+echo "🔍 Monitor checks for:"
+echo "   - VS Code extensions"
+echo "   - Browser extensions/userscripts"
+echo "   - Network connections to Copilot"
+echo "   - Settings file tampering"
 echo ""
 echo "💡 Tip: Watch the log with: tail -f /tmp/copilot_violations.log"
 echo ""
