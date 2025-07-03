@@ -5,6 +5,12 @@ echo "🔒 Configuring environment for secure online test..."
 # Wait for VS Code to be ready
 sleep 3
 
+# Close any open Copilot chat panels
+echo "  Closing Copilot chat if open..."
+code --command workbench.action.closeAuxiliaryBar 2>/dev/null || true
+code --command workbench.action.chat.close 2>/dev/null || true
+code --command workbench.action.closePanel 2>/dev/null || true
+
 # Create VS Code settings to disable Copilot and hide UI elements
 echo "  Creating VS Code settings..."
 mkdir -p .vscode
@@ -46,6 +52,18 @@ cat > .vscode/settings.json << 'EOF'
   "editor.suggest.enabled": false,
   "editor.parameterHints.enabled": false,
   "editor.hover.enabled": false,
+
+  // Disable inline completions and ghost text (removes "Start chat..." overlay)
+  "editor.inlineSuggest.enabled": false,
+  "editor.suggest.showInlineDetails": false,
+  "editor.suggest.preview": false,
+  "github.copilot.editor.enableCodeActions": false,
+  "github.copilot.inlineSuggest.enable": false,
+
+  // Disable welcome/getting started overlays
+  "workbench.tips.enabled": false,
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "editor.unicodeHighlight.nonBasicASCII": false,
 
   // Disable extensions auto-update to prevent changes
   "extensions.autoUpdate": false,
@@ -152,6 +170,8 @@ echo "   ✓ All AI assistance blocked"
 echo "   ✓ Extensions panel hidden"
 echo "   ✓ Command palette disabled (F1, Ctrl/Cmd+Shift+P)"
 echo "   ✓ IntelliSense and suggestions disabled"
+echo "   ✓ Inline hints and ghost text removed"
+echo "   ✓ Copilot chat closed"
 echo "   ✓ Monitoring active (PID: $MONITOR_PID)"
 echo ""
 echo "⚠️  Any attempts to enable Copilot will be logged to ~/test_violations.log"
