@@ -1,8 +1,44 @@
 {
-  "name": "No Copilot",
-  "build": {
-    "dockerfile": "Dockerfile"
+  "name": "Python Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "github.copilot.enable": false,
+        "github.copilot.advanced": {
+          "disabled": true
+        },
+
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.provider": "black",
+        "python.testing.pytestEnabled": true,
+
+        "editor.formatOnSave": true,
+        "editor.rulers": [80, 120],
+        "files.trimTrailingWhitespace": true
+      },
+
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "ms-toolsai.jupyter",
+        "donjayamanne.githistory",
+        "eamodio.gitlens"
+      ]
+    }
   },
-  "remoteUser": "vscode",
-  "postCreateCommand": "bash /home/vscode/monitor-extensions.sh & disown"
+
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+
+  "postCreateCommand": "pip install -r requirements.txt && pre-commit install",
+  "forwardPorts": [8000, 8080]
 }
