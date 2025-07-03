@@ -1,51 +1,46 @@
 {
-  "name": "Python Development Environment",
+  "name": "Minimal Python Environment",
   "image": "mcr.microsoft.com/devcontainers/python:3.11",
 
   "customizations": {
     "vscode": {
       "settings": {
+        // Disable ALL AI/Copilot features
         "github.copilot.enable": false,
         "github.copilot.advanced": {
           "disabled": true
         },
 
+        // Minimal Python settings
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.linting.enabled": true,
-        "python.linting.pylintEnabled": true,
-        "python.formatting.provider": "black",
-        "python.testing.pytestEnabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.linting.flake8Enabled": true,
 
-        "editor.formatOnSave": true,
-        "editor.rulers": [80, 120],
-        "files.trimTrailingWhitespace": true
+        // Disable all telemetry and extras
+        "telemetry.telemetryLevel": "off",
+        "extensions.autoUpdate": false,
+        "extensions.autoCheckUpdates": false,
+        "extensions.ignoreRecommendations": true,
+
+        // Clean editor
+        "editor.minimap.enabled": false,
+        "editor.suggestOnTriggerCharacters": false,
+        // Hide auxiliary bar where Copilot chat appears
+        "workbench.auxiliaryBar.enabled": false,
+        "workbench.auxiliaryBar.visible": false,
+        "workbench.panel.chat.hidden": true,
+        "chat.commandCenter.enabled": false
       },
 
+      // ONLY essential Python extension - no extras
       "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-python.black-formatter",
-        "ms-toolsai.jupyter",
-        "donjayamanne.githistory",
-        "eamodio.gitlens"
+        "ms-python.python"
       ]
     }
   },
 
-  "features": {
-    "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.11"
-    }
-  },
+  "postCreateCommand": "pip install flake8 && bash .devcontainer/hide_copilot.sh",
 
-  "postCreateCommand": "bash .devcontainer/setup.sh",
-
-
-  "settings": {
-    "extensions.autoUpdate": false,
-    "extensions.autoCheckUpdates": false
-  },
-
-  "forwardPorts": [8000, 8080]
+  "forwardPorts": []
 }
