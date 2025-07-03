@@ -39,6 +39,13 @@
     }
   },
 
-  "postCreateCommand": "pip install -r requirements.txt && pre-commit install",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+
+  "settings": {
+    "extensions.autoUpdate": false,
+    "extensions.autoCheckUpdates": false
+  },
+
   "forwardPorts": [8000, 8080]
 }
