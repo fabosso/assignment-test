@@ -139,28 +139,86 @@ code --uninstall-extension GitHub.copilot-nightly --force 2>/dev/null || true
 code --uninstall-extension GitHub.copilot-labs --force 2>/dev/null || true
 code --uninstall-extension GitHub.copilot-chat --force 2>/dev/null || true
 
-# Create a monitoring script for the test duration
-cat > "$HOME/.test_monitor.sh" << 'EOF'
+# Create and launch the monitoring daemon
+echo "  Setting up Copilot monitoring daemon..."
+
+# Create the monitor script
+cat > "$HOME/.monitor_copilot.sh" << 'MONITOR_SCRIPT'
 #!/bin/bash
-# Monitor and prevent Copilot during test
 
+# Copilot Monitoring Daemon for Online Tests
+LOG_FILE="$HOME/copilot_violations.log"
+CHECK_INTERVAL=5  # Check every 5 seconds
+VIOLATION_COUNT=0
+
+# Initialize log file
+echo "=== Copilot Monitor Started at $(date) ===" > "$LOG_FILE"
+echo "Monitoring for unauthorized Copilot usage during test" >> "$LOG_FILE"
+echo "" >> "$LOG_FILE"
+
+# Function to check for Copilot extensions
+check_copilot() {
+    local copilot_found=false
+    local extensions=$(code --list-extensions 2>/dev/null || echo "")
+
+    for ext in $extensions; do
+        if [[ "$ext" =~ [Cc]opilot ]]; then
+            copilot_found=true
+            VIOLATION_COUNT=$((VIOLATION_COUNT + 1))
+
+            # Log the violation
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] VIOLATION #$VIOLATION_COUNT: Copilot extension detected: $ext" | tee -a "$LOG_FILE"
+            echo "  User: $(whoami)" >> "$LOG_FILE"
+            echo "  Workspace: $(pwd)" >> "$LOG_FILE"
+
+            # Attempt to uninstall
+            echo "  Attempting to remove $ext..." | tee -a "$LOG_FILE"
+            code --uninstall-extension "$ext" --force 2>&1 >> "$LOG_FILE"
+
+            # Create violation marker
+            echo "COPILOT VIOLATION DETECTED at $(date)" > "$HOME/VIOLATION_DETECTED.txt"
+
+            echo "" >> "$LOG_FILE"
+        fi
+    done
+
+    return $([ "$copilot_found" = true ] && echo 1 || echo 0)
+}
+
+# Main monitoring loop
 while true; do
-    # Check if any Copilot extension gets installed
-    if code --list-extensions 2>/dev/null | grep -i copilot; then
-        echo "[$(date)] WARNING: Copilot detected during test! Removing..."
-        code --list-extensions 2>/dev/null | grep -i copilot | xargs -I {} code --uninstall-extension {} --force 2>/dev/null || true
-
-        # Log this violation
-        echo "[$(date)] VIOLATION: Attempted to use Copilot during test" >> "$HOME/test_violations.log"
-    fi
-
-    sleep 10
+    check_copilot
+    sleep $CHECK_INTERVAL
 done
-EOF
+MONITOR_SCRIPT
 
-chmod +x "$HOME/.test_monitor.sh"
-nohup "$HOME/.test_monitor.sh" > "$HOME/.test_monitor.log" 2>&1 &
+chmod +x "$HOME/.monitor_copilot.sh"
+
+# Kill any existing monitor processes
+pkill -f "monitor_copilot.sh" 2>/dev/null || true
+
+# Launch the daemon
+nohup "$HOME/.monitor_copilot.sh" > "$HOME/.monitor_output.log" 2>&1 &
 MONITOR_PID=$!
+
+# Verify daemon is running
+sleep 1
+if ps -p $MONITOR_PID > /dev/null; then
+    echo "  ✓ Monitor daemon started successfully (PID: $MONITOR_PID)"
+else
+    echo "  ⚠️  Warning: Monitor daemon may not have started properly"
+fi
+
+# Create a stop script for after the test
+cat > "$HOME/stop_monitor.sh" << EOF
+#!/bin/bash
+echo "Stopping Copilot monitor..."
+kill $MONITOR_PID 2>/dev/null || true
+pkill -f "monitor_copilot.sh" 2>/dev/null || true
+echo "Monitor stopped."
+echo "Check violations log at: ~/copilot_violations.log"
+EOF
+chmod +x "$HOME/stop_monitor.sh"
 
 echo "✅ Test environment configured!"
 echo ""
@@ -174,6 +232,14 @@ echo "   ✓ Inline hints and ghost text removed"
 echo "   ✓ Copilot chat closed"
 echo "   ✓ Monitoring active (PID: $MONITOR_PID)"
 echo ""
-echo "⚠️  Any attempts to enable Copilot will be logged to ~/test_violations.log"
+echo "⚠️  Any attempts to enable Copilot will be logged to ~/copilot_violations.log"
+echo "🛑 To stop monitoring after test: run ~/stop_monitor.sh"
 echo ""
 echo "📝 Students must write all code independently for this test."
+
+# Show initial status
+echo ""
+echo "Current status:"
+echo "  Extensions installed: $(code --list-extensions 2>/dev/null | wc -l)"
+echo "  Copilot extensions: $(code --list-extensions 2>/dev/null | grep -i copilot | wc -l)"
+echo "  Monitor daemon: Running (PID: $MONITOR_PID)"
